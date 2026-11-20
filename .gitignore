@@ -1,0 +1,11 @@
+# raw kubectl-ai output (rendered answers, may contain the whole conversation)
+out/
+
+# kubectl-ai traces / sessions
+*.trace
+trace*.txt
+.kubectl-ai/
+
+# local secrets
+.env
+*.env

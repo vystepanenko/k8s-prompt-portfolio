@@ -1,0 +1,53 @@
+# Findings (original: app-livenessProbe.yaml):
+# 1. [bug] livenessProbe targets port 8000, container listens on 8080
+# -> probe fails, pod restarts every ~30s.
+# 2. [reliability] missing readinessProbe -> traffic may be routed
+# before container is ready.
+# 3. [best-practice] missing resource requests and limits -> scheduler
+# cannot place pod reliably.
+# 4. [security] missing securityContext -> container runs with default
+# privileges.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-livenessprob
+  namespace: demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: gcr.io/smartcity-gl/demo:v1.0.1
+      ports:
+        - containerPort: 8080
+          name: http
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        initialDelaySeconds: 5
+        timeoutSeconds: 1
+        periodSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        initialDelaySeconds: 5
+        timeoutSeconds: 1
+        periodSeconds: 10
+        failureThreshold: 3
+      resources:
+        limits:
+          cpu: 250m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL

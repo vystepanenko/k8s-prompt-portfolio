@@ -1,0 +1,64 @@
+# Findings (original: app.yaml):
+# 1. [reliability] bare Pod lacks self-healing -> convert to
+#    apps/v1 Deployment.
+# 2. [reliability] missing readiness and liveness probes -> health
+#    checks are required to detect and recover from failures.
+# 3. [best-practice] missing resource requests and limits ->
+#    scheduler cannot place workload reliably.
+# 4. [security] missing securityContext -> container runs with
+#    unconstrained default privileges.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  labels:
+    app: demo
+    run: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+      run: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+        run: demo
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: gcr.io/k8s-k3s/demo:v1.0.0
+          ports:
+            - containerPort: 8000
+              name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5

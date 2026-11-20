@@ -1,0 +1,62 @@
+# Findings (original: app-volumeMounts.yaml):
+# 1. [security] hostPath volume exposes node filesystem path ->
+#    breaks multi-tenant isolation and security boundary.
+# 2. [reliability] hostPath binds volume to specific node ->
+#    prevents pod migration and dynamic scheduling across nodes.
+# 3. [security] missing securityContext -> container runs with
+#    default elevated privileges and no seccomp profile.
+# 4. [best-practice] missing resource requests/limits -> pod
+#    can cause resource exhaustion in multi-tenant cluster.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-volume
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: gcr.io/kuar-demo/kuard-amd64:1
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+      ports:
+        - containerPort: 8080
+          name: http
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      livenessProbe:
+        httpGet:
+          path: /healthy
+          port: 8080
+        initialDelaySeconds: 5
+        timeoutSeconds: 1
+        periodSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /ready
+          port: 8080
+        initialDelaySeconds: 0
+        periodSeconds: 2
+        timeoutSeconds: 1
+        failureThreshold: 3
+        successThreshold: 1
+      volumeMounts:
+        - mountPath: /data
+          name: data
+  volumes:
+    - name: data
+      emptyDir: {}

@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: app-job
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: init
+          image: google/cloud-sdk:275.0.0-alpine
+          command:
+            - gsutil
+            - -m
+            - rsync
+            - -dr
+            - gs://glow-sportradar/
+            - /data/input
+          volumeMounts:
+            - name: data-input
+              mountPath: /data/input
+      containers:
+        - name: processor
+          image: glowtools/soccer:latest-4e4254a
+          command:
+            - /bin/sh
+            - -c
+            - ls -l /data/input
+          volumeMounts:
+            - name: data-input
+              mountPath: /data/input
+            - name: data-output
+              mountPath: /data/output
+      volumes:
+        - name: data-input
+          persistentVolumeClaim:
+            claimName: glow-data-input
+        - name: data-output
+          emptyDir: {}

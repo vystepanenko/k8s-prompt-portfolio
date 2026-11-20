@@ -1,0 +1,19 @@
+generate	app	Zero-shot generation of a bare Pod. Explicit negative scope ("do not add anything else") keeps the output identical to the specification instead of letting the model "improve" it.
+generate	app-livenessProbe	HTTP liveness probe. The prompt names the reason for a design choice (probe on the named port so it cannot drift from the container port), which steers the model away from the bug in the original.
+generate	app-readinessProbe	Structured input: the specification is given as key-value lines, so every probe parameter maps 1:1 to a field and nothing is left to the model's defaults.
+generate	app-volumeMounts	Pod with probes and a hostPath volume. Exact volume type (DirectoryOrCreate) is part of the instruction, so creating a missing node directory is explicit instead of left to the untyped default.
+generate	app-cronjob	CronJob on the current batch/v1 API. Behaviour is described in plain words ("must not start while the previous one is still running") and the model translates it into concurrencyPolicy and history limits.
+generate	app-job	Contextual prompting: the pipeline is described step by step (sync bucket, then process) and the deprecated in-tree GCE disk is replaced by a PersistentVolumeClaim. No lifecycle hooks, because preStop never fires for a run-to-completion container.
+generate	app-multicontainer	Pattern-oriented prompt: names the sidecar content-generator pattern and the role of each container, with pinned image tags.
+generate	app-resources	Compute resources with exact requests and limits next to the probes; numbers are given, not left to the model.
+generate	app-secret-env	Multi-document output: the Secret the Pod depends on is generated in the same stream, with placeholder values instead of real credentials.
+generate	ingress	Ingress for the optional Gateway API part: ingressClassName nginx and standard fields only, so ingress2gateway can convert it without losing controller-specific annotations.
+analyse	app	Review of a bare Pod against production expectations (self-healing, health checks, resources, security context), with the constraint to keep image, labels and port.
+analyse	app-livenessProbe	Symptom-first context ("restarts every ~30 seconds"): the model is asked for the root cause before other findings. Finds the probe port 8000 vs container port 8080 mismatch.
+analyse	app-readinessProbe	Consistency check between the two probes, the container port and the probe timings.
+analyse	app-volumeMounts	Review from the perspective of a multi-tenant platform team: storage choice (hostPath) and its security and scheduling consequences come first.
+analyse	app-cronjob	Failure-driven context ("applying to 1.34 fails"): the model explains the removed batch/v1beta1 API, fixes it, then checks overlapping runs, history limits and the untagged image.
+analyse	app-job	Debugging a reported symptom ("preStop never writes its message"), then a review of volume types and image tag. The answer is capped at 3 findings: the full review did not fit into kubectl-ai's output length.
+analyse	app-multicontainer	Review of a two-container Pod: naming, image pinning and resource limits for both containers.
+analyse	app-resources	Assessment prompt that explicitly allows "nothing is broken": request/limit ratio and the resulting QoS class.
+analyse	app-secret-env	Secret handling: what happens when the referenced Secret is missing, plus image pinning and secret-handling security.

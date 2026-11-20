@@ -1,0 +1,68 @@
+# Findings (original: app-multicontainer.yaml):
+# 1. [best-practice] Container names '1st' and '2nd' are non-
+#    descriptive -> use names like 'web-server' and 'generator'.
+# 2. [best-practice] Unpinned images 'nginx' and 'debian' default
+#    to latest -> pin specific tag versions.
+# 3. [best-practice] Missing resource requests and limits ->
+#    scheduler cannot place pod reliably.
+# 4. [security] Security context is missing -> containers run without
+#    restricted privileges.
+# 5. [reliability] Missing readiness and liveness probes -> traffic
+#    may be routed before web server is ready.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-two-containers
+spec:
+  volumes:
+  - name: html
+    emptyDir: {}
+  containers:
+  - name: web-server
+    image: nginx:1.27.4
+    ports:
+    - containerPort: 80
+      name: http
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 2
+      periodSeconds: 5
+    securityContext:
+      allowPrivilegeEscalation: false
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+  - name: generator
+    image: debian:12-slim
+    command:
+    - /bin/sh
+    - -c
+    args:
+    - while true; do date >> /html/index.html; sleep 1; done
+    resources:
+      requests:
+        cpu: 50m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 64Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+    volumeMounts:
+    - name: html
+      mountPath: /html

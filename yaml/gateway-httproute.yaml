@@ -1,0 +1,71 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2gateway-dev
+  name: nginx
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: demo.example.com
+    name: demo-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: demo.example.com
+    name: demo-example-com-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: ""
+        kind: Secret
+        name: demo-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2gateway-dev
+  name: app-demo-example-com
+spec:
+  hostnames:
+  - demo.example.com
+  parentRefs:
+  - name: nginx
+    port: 443
+  rules:
+  - backendRefs:
+    - name: app
+      port: 80
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0
+status:
+  parents: []
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2gateway-dev
+  name: app-demo-example-com-http
+spec:
+  hostnames:
+  - demo.example.com
+  parentRefs:
+  - name: nginx
+    port: 80
+  rules:
+  - filters:
+    - requestRedirect:
+        scheme: https
+        statusCode: 308
+      type: RequestRedirect
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+status:
+  parents: null

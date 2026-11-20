@@ -1,0 +1,56 @@
+# Findings (original: app-readinessProbe.yaml):
+# 1. [best-practice] no resource requests/limits -> scheduler cannot
+#    place the pod reliably and risks resource starvation.
+# 2. [security] missing securityContext -> pod and container run with
+#    unconstrained privileges.
+# 3. [reliability] readinessProbe initialDelaySeconds is 0 while
+#    livenessProbe initialDelaySeconds is 5 -> probe starts before
+#    container initial setup.
+# 4. [best-practice] probes target numeric port 8000 instead of named
+#    port 'http' -> reduces manifest maintainability.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-readinessprob
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: gcr.io/smartcity-gl/harmonic:v2.0.2
+      ports:
+        - containerPort: 8000
+          name: http
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+      livenessProbe:
+        httpGet:
+          path: /
+          port: http
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 1
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /ready
+          port: http
+        initialDelaySeconds: 5
+        periodSeconds: 2
+        timeoutSeconds: 1
+        failureThreshold: 3
+        successThreshold: 1

@@ -1,0 +1,53 @@
+# Findings (original: app-job.yaml):
+# 1. [bug] preStop hooks do not execute when a container process
+#    exits naturally upon completing its Job execution.
+# 2. [deprecated] gcePersistentDisk is deprecated; use a
+#    persistentVolumeClaim volume source instead.
+# 3. [best-practice] image tag latest-4e4254a uses a mutable latest
+#    prefix instead of a fixed release tag or SHA digest.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: app-job
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+      - name: data-input
+        persistentVolumeClaim:
+          claimName: glow-data-disk-200
+      - name: data-output
+        emptyDir: {}
+      initContainers:
+      - name: init
+        image: google/cloud-sdk:275.0.0-alpine
+        command:
+        - /bin/sh
+        - -c
+        - gsutil -m rsync -dr gs://glow-sportradar/ /data/input
+        volumeMounts:
+        - name: data-input
+          mountPath: /data/input
+      containers:
+      - name: processor
+        image: glowtools/soccer:4e4254a
+        command:
+        - /bin/sh
+        - -c
+        - ls -l /data/input
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - >-
+                echo Start from the postStart handler >
+                /data/input/message
+        volumeMounts:
+        - name: data-input
+          mountPath: /data/input
+        - name: data-output
+          mountPath: /data/output
