@@ -52,7 +52,8 @@ def row(mode: str, name: str, desc: dict) -> str:
 def table() -> str:
     desc = descriptions()
     lines = ["| NAME | PROMPT | DESCRIPTION | EXAMPLE |", "|---|---|---|---|"]
-    lines += [row("generate", n, desc) for n in ORDER + ["ingress"]]
+    generate = ORDER[:-1] + ["app-secret", "app-secret-env", "ingress"]
+    lines += [row("generate", n, desc) for n in generate]
     lines += [row("analyse", n, desc) for n in ORDER]
     return "\n".join(lines)
 

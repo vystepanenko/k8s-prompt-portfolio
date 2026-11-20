@@ -6,7 +6,8 @@ generate	app-cronjob	CronJob on the current batch/v1 API. Behaviour is described
 generate	app-job	Contextual prompting: the pipeline is described step by step (sync bucket, then process) and the deprecated in-tree GCE disk is replaced by a PersistentVolumeClaim. No lifecycle hooks, because preStop never fires for a run-to-completion container.
 generate	app-multicontainer	Pattern-oriented prompt: names the sidecar content-generator pattern and the role of each container, with pinned image tags.
 generate	app-resources	Compute resources with exact requests and limits next to the probes; numbers are given, not left to the model.
-generate	app-secret-env	Multi-document output: the Secret the Pod depends on is generated in the same stream, with placeholder values instead of real credentials.
+generate	app-secret-env	Pod that reads credentials via secretKeyRef. One manifest per file: the prompt names the dependency (Secret in app-secret.yaml) and excludes it, so the file stays a single YAML document.
+generate	app-secret	The Secret the app-secret-env Pod depends on, as its own manifest, with placeholder values instead of real credentials.
 generate	ingress	Ingress for the optional Gateway API part: ingressClassName nginx and standard fields only, so ingress2gateway can convert it without losing controller-specific annotations.
 analyse	app	Review of a bare Pod against production expectations (self-healing, health checks, resources, security context), with the constraint to keep image, labels and port.
 analyse	app-livenessProbe	Symptom-first context ("restarts every ~30 seconds"): the model is asked for the root cause before other findings. Finds the probe port 8000 vs container port 8080 mismatch.

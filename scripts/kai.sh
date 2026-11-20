@@ -15,9 +15,10 @@ k8s_version=${K8S_VERSION:-1.34.0}
 
 # kubectl-ai runs read-only kubectl calls without asking: refuse to start unless the
 # kubeconfig holds exactly one kind context.
-for tool in kubectl kubeconform; do
+for tool in kubectl kubeconform python3; do
   command -v "$tool" >/dev/null || { echo "$tool not found in PATH" >&2; exit 1; }
 done
+python3 -c 'import yaml' 2>/dev/null || { echo "python3 needs PyYAML (pip install pyyaml)" >&2; exit 1; }
 
 contexts=$(kubectl config get-contexts -o name)
 if [[ $(wc -l <<<"$contexts") -ne 1 || $contexts != kind-* ]]; then
@@ -75,6 +76,9 @@ extract() {
   fi
   printf '%s\n' "$body" >"$tmp"
   grep -q '^kind:' "$tmp" || { echo "no Kubernetes object in the answer"; return 1; }
+  # one manifest per file: parsers that load a single document reject a "---" stream
+  python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1]))' "$tmp" 2>/dev/null || {
+    echo "not a single YAML document"; return 1; }
   kubeconform -strict -summary -kubernetes-version "$k8s_version" "$tmp" >&2 || {
     echo "kubeconform failed"; return 1; }
 }

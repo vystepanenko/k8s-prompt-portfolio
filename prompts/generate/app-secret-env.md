@@ -1,5 +1,5 @@
-Create two documents in one YAML stream, separated by ---:
-1. Secret mysecret1 (type Opaque) with keys username and password, using stringData with the
-   placeholder values "change-me" (they will be replaced at deploy time).
-2. Pod app-secret-env with container mycontainer (image redis:7.4) that reads the secret into the
-   environment variables SECRET_USERNAME and SECRET_PASSWORD via secretKeyRef; restartPolicy Never.
+Create a single Pod manifest (one YAML document, no ---) named app-secret-env.
+- Container mycontainer, image redis:7.4; restartPolicy Never.
+- Environment variables SECRET_USERNAME and SECRET_PASSWORD come from the keys username and
+  password of the Secret mysecret1 via secretKeyRef. The Secret is a separate manifest
+  (app-secret.yaml): do not include it here.
